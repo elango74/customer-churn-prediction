@@ -20,8 +20,12 @@ st.set_page_config(
     page_title="Customer Churn Prediction",
     layout="wide",
     initial_sidebar_state="expanded"
-
 )
+
+# -------- CACHE MODEL --------
+@st.cache_resource
+def load_model(model_path):
+    return joblib.load(model_path)
 
 # -------- UI LOAD --------
 load_background()
@@ -30,27 +34,37 @@ st.write("")
 
 # -------- LOAD MODEL --------
 MODEL_PATH = os.path.join(ROOT_DIR, "models", "churn_model.pkl")
-model = joblib.load(MODEL_PATH)
+model = load_model(MODEL_PATH)
 
 # -------- SIDEBAR INPUTS --------
 st.sidebar.header("Customer Details")
 
 tenure = st.sidebar.slider(
-    "Tenure (months)", 0, 100, 12
-    
+    "Tenure (months)",
+    0, 100, 12,
+    help="Number of months the customer has stayed with the company"
 )
 
 monthly_charges = st.sidebar.slider(
-    "Monthly Charges", 0.0, 200.0, 70.0
+    "Monthly Charges",
+    0.0, 200.0, 70.0,
+    help="Average monthly billing amount"
 )
 
-total_charges = st.sidebar.slider(
-    "Total Charges", 0.0, 10000.0, 840.0
+# ✅ UPDATED: Integer-based input (NO decimals)
+total_charges = st.sidebar.number_input(
+    "Total Charges",
+    min_value=0,
+    max_value=100000,
+    value=840,
+    step=100,
+    help="Total amount billed to the customer"
 )
 
 contract = st.sidebar.selectbox(
     "Contract Type",
-    ["Month-to-month", "One year", "Two year"]
+    ["Month-to-month", "One year", "Two year"],
+    help="Customer contract duration"
 )
 
 payment = st.sidebar.selectbox(
@@ -60,7 +74,8 @@ payment = st.sidebar.selectbox(
         "Mailed check",
         "Bank transfer (automatic)",
         "Credit card (automatic)"
-    ]
+    ],
+    help="Preferred payment method"
 )
 
 # -------- PREDICT BUTTON --------
@@ -88,15 +103,18 @@ if st.button("Predict Churn", use_container_width=True):
         input_data[f"PaymentMethod_{payment}"] = 1
 
         input_df = pd.DataFrame([input_data])
-        input_df = input_df.reindex(columns=model.feature_names_in_, fill_value=0)
+        input_df = input_df.reindex(
+            columns=model.feature_names_in_,
+            fill_value=0
+        )
 
         churn_prob = model.predict_proba(input_df)[0][1]
         action = recommend_action(churn_prob)
 
-        if churn_prob >= 0.75:
+        if churn_prob >= 0.60:
             color = "#ff4b4b"
             risk = "HIGH RISK"
-        elif churn_prob >= 0.40:
+        elif churn_prob >= 0.30:
             color = "#f7b731"
             risk = "MEDIUM RISK"
         else:
@@ -128,19 +146,29 @@ if st.button("Predict Churn", use_container_width=True):
         )
 
         st.subheader("Why this prediction?")
+        # 🔧 Early churn behavior warning
+        if churn_prob < 0.40 and tenure < 6 and contract == "Month-to-month":
+            st.warning(
+                "⚠️ Early churn behavior detected: "
+                "New customer on a flexible contract with high monthly charges."
+            )
+
         reasons = []
 
         if tenure < 12:
-            reasons.append("Customer has short tenure")
+            reasons.append("Customer has a short tenure")
         if contract == "Month-to-month":
-            reasons.append("Month-to-month contracts have higher churn")
+            reasons.append("Month-to-month contracts show higher churn rates")
         if payment == "Electronic check":
             reasons.append("Electronic check users churn more frequently")
         if monthly_charges > 80:
-            reasons.append("High monthly charges increase churn risk")
+            reasons.append("High monthly charges increase churn probability")
 
-        for r in reasons or ["Customer profile indicates stable behavior"]:
-            st.write("•", r)
+        if reasons:
+            for r in reasons:
+                st.write("•", r)
+        else:
+            st.write("• Customer profile indicates stable behavior")
 
 # -------- MODEL DETAILS --------
 with st.expander("Model Details"):
