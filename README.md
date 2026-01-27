@@ -40,6 +40,36 @@ This project focuses on predicting customer churn in advance using machine learn
 
 ---
 
+---
+## Customer Churn Prediction – Folder Structure
+
+```text
+customer-churn-prediction/
+├── data/
+│   ├── raw/                # Original dataset files
+│   └── processed/          # Cleaned and preprocessed data
+├── notebooks/
+│   ├── eda.ipynb           # Exploratory Data Analysis
+│   └── experiments.ipynb  # Model experiments
+├── src/
+│   ├── preprocessing.py   # Data cleaning & preprocessing
+│   ├── features.py        # Feature engineering
+│   ├── train.py           # Model training
+│   ├── predict.py         # Prediction logic
+│   └── utils.py           # Helper functions
+├── models/
+│   └── churn_model.pkl    # Trained ML model
+├── results/
+│   ├── metrics.json       # Evaluation metrics
+│   └── plots/             # Accuracy, ROC, confusion matrix
+├── assets/
+│   └── screenshots/       # UI / result screenshots (portfolio use)
+├── app.py                 # Streamlit / Flask app (optional)
+├── requirements.txt       # Project dependencies
+└── README.md              # Project documentation
+```
+---
+
 ## Machine Learning Workflow
 
 ### 1️⃣ Data Preprocessing
