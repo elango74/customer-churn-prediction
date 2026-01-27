@@ -1,12 +1,12 @@
 import sys
 import os
 
-# -------- PATH SETUP --------
+#PATH SETUP
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-# -------- IMPORTS --------
+#IMPORTS
 import streamlit as st
 import pandas as pd
 import joblib
@@ -15,28 +15,37 @@ from ui.styles import load_background
 from ui.components import header, footer
 from src.action_recommendation import recommend_action
 
-# -------- PAGE CONFIG --------
+#RISK CLASSIFICATION
+def churn_risk_mapping(churn_prob):
+    if churn_prob >= 0.40:
+        return "HIGH RISK", "#ff4b4b"
+    elif churn_prob >= 0.25:
+        return "MEDIUM RISK", "#f7b731"
+    else:
+        return "LOW RISK", "#2ecc71"
+
+#PAGE CONFIG 
 st.set_page_config(
     page_title="Customer Churn Prediction",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# -------- CACHE MODEL --------
+#CACHE MODEL
 @st.cache_resource
 def load_model(model_path):
     return joblib.load(model_path)
 
-# -------- UI LOAD --------
+#UI LOAD
 load_background()
 header()
 st.write("")
 
-# -------- LOAD MODEL --------
+#LOAD MODEL
 MODEL_PATH = os.path.join(ROOT_DIR, "models", "churn_model.pkl")
 model = load_model(MODEL_PATH)
 
-# -------- SIDEBAR INPUTS --------
+#SIDEBAR INPUTS
 st.sidebar.header("Customer Details")
 
 tenure = st.sidebar.slider(
@@ -51,7 +60,6 @@ monthly_charges = st.sidebar.slider(
     help="Average monthly billing amount"
 )
 
-# ✅ UPDATED: Integer-based input (NO decimals)
 total_charges = st.sidebar.number_input(
     "Total Charges",
     min_value=0,
@@ -78,7 +86,7 @@ payment = st.sidebar.selectbox(
     help="Preferred payment method"
 )
 
-# -------- PREDICT BUTTON --------
+#PREDICT BUTTON 
 st.write("")
 if st.button("Predict Churn", use_container_width=True):
 
@@ -111,18 +119,11 @@ if st.button("Predict Churn", use_container_width=True):
         churn_prob = model.predict_proba(input_df)[0][1]
         action = recommend_action(churn_prob)
 
-        if churn_prob >= 0.60:
-            color = "#ff4b4b"
-            risk = "HIGH RISK"
-        elif churn_prob >= 0.30:
-            color = "#f7b731"
-            risk = "MEDIUM RISK"
-        else:
-            color = "#2ecc71"
-            risk = "LOW RISK"
+        risk, color = churn_risk_mapping(churn_prob)
 
+#VISUAL INDICATORS SECTION
         st.subheader("Churn Risk Indicator")
-        st.progress(churn_prob)
+        st.progress(min(churn_prob, 1.0))
 
         st.markdown(
             f"""
@@ -137,6 +138,14 @@ if st.button("Predict Churn", use_container_width=True):
                 <p style="font-size:22px; color:{color};">
                     Risk Level: <b>{risk}</b>
                 </p>
+                <p style="font-size:20px; color:white;">
+                    Risk Interpretation:
+                    <b>
+                        {"Immediate action required" if "HIGH" in risk else
+                         "Monitor and engage" if risk == "MEDIUM RISK" else
+                         "Customer is stable"}
+                    </b>
+                </p>
                 <p style="font-size:22px; color:white;">
                     Recommended Action: <b>{action}</b>
                 </p>
@@ -145,8 +154,15 @@ if st.button("Predict Churn", use_container_width=True):
             unsafe_allow_html=True
         )
 
+#EXPLANATION SECTION
         st.subheader("Why this prediction?")
-        # 🔧 Early churn behavior warning
+
+        if churn_prob >= 0.40:
+            st.error(
+                "🚨 Very high churn likelihood detected. "
+                "Customer shows multiple strong churn indicators."
+            )
+
         if churn_prob < 0.40 and tenure < 6 and contract == "Month-to-month":
             st.warning(
                 "⚠️ Early churn behavior detected: "
@@ -170,13 +186,14 @@ if st.button("Predict Churn", use_container_width=True):
         else:
             st.write("• Customer profile indicates stable behavior")
 
-# -------- MODEL DETAILS --------
+#MODEL DETAILS SECTION
 with st.expander("Model Details"):
     st.write("""
     • Model: Random Forest Classifier  
     • Dataset: Telco Customer Churn  
     • Output: Churn Probability  
-    • Business Goal: Customer Retention
+    • Business Goal: Customer Retention  
+    • Evaluation Focus: Recall over Accuracy
     """)
 
 footer()

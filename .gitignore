@@ -1,1 +1,7 @@
 data/processed/
+
+# VS Code
+*.code-workspace
+
+# Python cache
+__pycache__/
