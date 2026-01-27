@@ -205,10 +205,22 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Deployment
+
+The application is deployed using Streamlit Cloud.
+
+Live Application:
+https://elango74-customer-churn-prediction-streamlit-appapp-5zgxqf.streamlit.app/
+
+Deployment Platform: Streamlit Cloud
+
+Model Serving: Real-time inference using trained ML pipeline
+
+The deployment allows users to access churn predictions without any local setup.
+
 ## Author
 **Elango E**  
 AI & Machine Learning Enthusiast  
 Customer Churn Prediction | End-to-End ML Application
 
-## Deployed Link
-https://elango74-customer-churn-prediction-streamlit-appapp-5zgxqf.streamlit.app/
+
